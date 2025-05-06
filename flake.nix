@@ -14,6 +14,7 @@
             # (pkgs.writeShellScriptBin "neovim-fixed" "exec -a $0 ${neovim}/bin/nvim $@")
             neovim
             bashInteractive
+            just
           ];
         };
       }
