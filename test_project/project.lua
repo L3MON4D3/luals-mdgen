@@ -28,14 +28,19 @@ function Cat:meow(target, volume) end
 ---1. apple
 function Cat:eat(amount, foodname) end
 
+---@class CatEnemiesExtraOpts
+---@field o1 number First extra-opt.
+---```lua
+---print("some text")
+---```
+
 ---@class CatEnemiesOpts
 ---@field filter (fun(string): boolean)? Optionally filter enemies by their name.
 ---@field max_legs number Only return enemies with this number of legs.
----Despite their legs, they may be less dangerous.
+---Despite their legs, they may be less dangerous, so take care!
 ---@field min number Only return enemies with this number of legs.
+---@field extra_opts CatEnemiesExtraOpts More opts!
 
 ---Return a list of enemies of all cats.
----@param opts CatEnemiesOpts
----Lots of options for cats' enemies
----asdfas
+---@param opts CatEnemiesOpts Lots of options for cats' enemies.
 function Cat.enemies(opts) end

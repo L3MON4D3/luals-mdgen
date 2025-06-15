@@ -21,22 +21,41 @@ local function prototype_string(typename, finfo)
 	return fn_line .. ")`"
 end
 
+local function paramlist_to_mdlist(items, opts)
+	local paramlist_items = {}
+	for i, param in ipairs(items) do
+		local param_tokens = {("`%s: %s`"):format(param.name, param.type)}
+		vim.list_extend(param_tokens, Parser.parse_markdown(param.description))
+
+		if opts.opts_expand[param.type] then
+			vim.list_extend(param_tokens, {
+				Tokens.fixed_text({"  "}), Tokens.combinable_linebreak(1),
+				"Valid", "keys", "are:" })
+
+			local class_info = Typeinfo.classinfo(param.type)
+			table.insert(param_tokens, paramlist_to_mdlist(class_info.members, opts))
+		end
+
+		paramlist_items[i] = param_tokens
+	end
+	return Tokens.list(paramlist_items, "bulleted")
+end
+
 function M.fn_doc_tokens(opts)
 	vim.validate("funcname", opts.funcname, {"string"})
 	vim.validate("typename", opts.typename, {"string"})
+	vim.validate("opts_expand", opts.opts_expand, {"table", "nil"})
+
+	local opts_expand = opts.opts_expand or {}
 
 	local info = Typeinfo.funcinfo(opts.typename, opts.funcname)
-	local tokens = { prototype_string(opts.typename, info) .. ":" }
+	local tokens = {
+		prototype_string(opts.typename, info) .. ":",
+		paramlist_to_mdlist(info.params, {opts_expand = opts_expand})
+	}
+
 
 	vim.list_extend(tokens, Parser.parse_markdown(info.description))
-
-	local paramlist_items = {}
-	for i, param in ipairs(info.params) do
-		local param_tokens = {("`%s: %s`"):format(param.name, param.type)}
-		vim.list_extend(param_tokens, Parser.parse_markdown(param.description))
-		paramlist_items[i] = param_tokens
-	end
-	table.insert(tokens, Tokens.list(paramlist_items, "bulleted"))
 
 	return tokens
 end

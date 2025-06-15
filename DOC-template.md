@@ -12,7 +12,8 @@ This project models a cat. The cat can meow and eat, without limit.
           print("lel")
           ```
       ]]),
-      fn_doc_tokens({typename = "Cat", funcname = "enemies"}),
+      fn_doc_tokens({typename = "Cat", funcname = "enemies", opts_expand =
+      { CatEnemiesOpts = true, CatEnemiesExtraOpts = true } }),
       markdown_tokens([[
           lel lol  
           lul
