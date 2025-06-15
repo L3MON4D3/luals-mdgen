@@ -27,7 +27,7 @@ while i <= #template_lines do
 				end
 
 				local renderer = TextRenderer.new({
-					textwidth = 20,
+					textwidth = 120,
 					base_indent = matched_indent
 				})
 
