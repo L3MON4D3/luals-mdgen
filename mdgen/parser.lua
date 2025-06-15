@@ -68,8 +68,16 @@ function parsers.hard_line_break()
 	return { Tokens.fixed_text({"  "}), Tokens.combinable_linebreak(1) }
 end
 
+local function pre_codeblock_cb(prev_token)
+	if not prev_token or (Tokens.is_data(prev_token) and prev_token.data.listmarker) then
+		return {}
+	end
+	return { Tokens.combinable_linebreak(1) }
+end
+-- expose so busted can use it for are.same-checks.
+M.__pre_codeblock_cb = pre_codeblock_cb
+
 function parsers.fenced_code_block(source, node)
-	local lines = {""}
 	-- starts at |```, ends at ```|.
 	local block_text_start = posbyte(node:start())+1
 	local block_text_end = nil
@@ -91,9 +99,8 @@ function parsers.fenced_code_block(source, node)
 	for i = 2, #split_text do
 		split_text[i] = split_text[i]:sub(#block_indent+1)
 	end
-	vim.list_extend(lines, split_text)
 
-	return { Tokens.fixed_text(lines), Tokens.combinable_linebreak(1) }
+	return { Tokens.prev_token_cb(pre_codeblock_cb), Tokens.fixed_text(split_text), Tokens.combinable_linebreak(1) }
 end
 
 local function ignore() return {} end

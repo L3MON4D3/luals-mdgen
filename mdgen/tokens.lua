@@ -1,4 +1,4 @@
----@alias MDGen.Token (string|MDGen.ListToken|MDGen.FixedTextToken|MDGen.CombinableLinebreakToken)
+---@alias MDGen.Token (string|MDGen.ListToken|MDGen.FixedTextToken|MDGen.CombinableLinebreakToken|MDGen.PrevCBToken|MDGen.DataToken)
 
 local M = {}
 
@@ -59,4 +59,39 @@ function M.is_combinable_linebreak(token)
 	return token.type == "combinable_linebreak"
 end
 
+---@class MDGen.PrevCBToken
+---Represents a minimum number of linebreaks between the previous and next
+---non-CombinableLinebreakToken.
+---@field type "prev_cb"
+---@field callback fun(t:MDGen.Token): MDGen.Token[]
+
+function M.prev_token_cb(fn)
+	return {
+		type = "prev_cb",
+		callback = fn
+	} --[[@as MDGen.PrevCBToken]]
+end
+
+function M.is_prev_cb(token)
+	return token.type == "prev_cb"
+end
+
+---@class MDGen.DataTokenData
+---@field listmarker boolean?
+
+---@class MDGen.DataToken
+---Represents some non-textual data.
+---@field type "data"
+---@field data MDGen.DataTokenData
+
+function M.data(data)
+	return {
+		type = "data",
+		data = data
+	} --[[@as MDGen.DataToken]]
+end
+
+function M.is_data(token)
+	return token.type == "data"
+end
 return M
