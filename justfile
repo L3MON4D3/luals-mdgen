@@ -1,3 +1,6 @@
-gen_doc:
-	lua-language-server --configpath ./.luarc.doc.json --doc ./ --doc_out_path ./
-	nvim --clean --headless -l mdgen.lua DOC-template.md doc.json DOC.md
+gen_test_doc:
+	emmylua_doc_cli -f json -i test_project -o ./ 
+	LUA_PATH="./?.lua;$LUA_PATH" nvim --clean --headless -l mdgen.lua DOC-template.md DOC.md
+
+test:
+	busted --lua nlua --lpath "./?.lua" test/
