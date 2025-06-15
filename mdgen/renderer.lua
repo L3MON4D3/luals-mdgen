@@ -10,6 +10,8 @@ local Typeinfo = require("mdgen.typeinfo")
 ---@field textwidth number The textwidth of this renderer.
 ---@field current_line_len number The textwidth of this renderer.
 ---Renders markdown-formatted lines.
+---@field n_virtual_linebreaks number Minimum number of linebreaks to insert
+---before the next text-token.
 local TextRenderer = {}
 TextRenderer.__index = TextRenderer
 
@@ -27,7 +29,8 @@ function TextRenderer.new(opts)
 		lines = {opts.base_indent},
 		indentstack = {opts.base_indent},
 		next_indent = opts.base_indent,
-		current_line_len = #opts.base_indent
+		current_line_len = #opts.base_indent,
+		n_virtual_linebreaks = 0
 	}, TextRenderer)
 end
 
@@ -47,11 +50,23 @@ function TextRenderer:pop_indent()
 	self.next_indent = self.next_indent:sub(1, -#popped_indent-1)
 end
 
+function TextRenderer:insert_virtual_linebreaks()
+	if self.n_virtual_linebreaks > 0 then
+		for _ = 1, self.n_virtual_linebreaks do
+			table.insert(self.lines, self.next_indent)
+		end
+		self.current_line_len = #self.next_indent
+		self.n_virtual_linebreaks = 0
+	end
+end
+
 ---Append a list of tokens.
 ---@param tokens MDGen.Token[]
 function TextRenderer:append_tokens(tokens)
 	for _, token in ipairs(tokens) do
 		if type(token) == "string" then
+			self:insert_virtual_linebreaks()
+
 			local sep = self.lines[#self.lines]:sub(-1, -1):match("[^%s]") and " " or ""
 
 			local line_len = self.current_line_len + #sep + #token
@@ -69,6 +84,8 @@ function TextRenderer:append_tokens(tokens)
 				self.current_line_len = #new_line
 			end
 		elseif Tokens.is_fixed_text(token) then
+			self:insert_virtual_linebreaks()
+
 			self.lines[#self.lines] = self.lines[#self.lines] .. token.text[1]
 			for i = 2, #token.text do
 				table.insert(self.lines, self.next_indent .. token.text[i])
@@ -96,10 +113,10 @@ function TextRenderer:append_tokens(tokens)
 				self:append_tokens(item_tokens)
 				self:pop_indent()
 			end
-			local last_list_line_empty = self.lines[#self.lines]:match("^%s*$")
-			-- only add one linebreak if there is already an empty line
-			-- following the list.
-			self:append_tokens({Tokens.fixed_text({ "", "", Util.ternary(last_list_line_empty, nil, "") })})
+
+			self:append_tokens({ Tokens.combinable_linebreak(2) })
+		elseif Tokens.is_combinable_linebreak(token) then
+			self.n_virtual_linebreaks = math.max(token.n, self.n_virtual_linebreaks)
 		end
 	end
 end
