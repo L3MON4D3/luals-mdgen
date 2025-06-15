@@ -34,11 +34,11 @@ local M = {}
 ---@class MDGen.ParamInfo
 ---@field name string
 ---@field type string
----@field description string[]
+---@field description string \n-concatenated
 
 ---@class MDGen.FuncInfo
 ---@field name string
----@field description string[]
+---@field description string \n-concatenated
 ---@field params MDGen.ParamInfo[]
 
 function M.funcinfo(typename, funcname)

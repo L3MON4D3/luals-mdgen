@@ -13,7 +13,19 @@ function Cat:meow(target, volume) end
 ---Cat:eat(5)
 ---```
 ---@param foodname string What to eat.  
----May be any food a cat does not die from.
+---May be any food a cat does not die from. For example
+---1. appleaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+---1. apple
+---1. apple
+---1. apple
+---1. apple
+---1. apple
+---1. apple
+---1. apple
+---1. apple
+---1. apple
+---1. apple
+---1. apple
 function Cat:eat(amount, foodname) end
 
 ---@class CatEnemiesOpts

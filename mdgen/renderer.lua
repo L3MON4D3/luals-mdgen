@@ -75,9 +75,24 @@ function TextRenderer:append_tokens(tokens)
 			end
 			self.current_line_len = #self.lines[#self.lines]
 		elseif Tokens.is_list(token) then
-			for _, item_tokens in ipairs(token.items) do
-				self:append_tokens({Tokens.fixed_text({"", "* "})})
-				self:push_indent("  ")
+			local list_marker
+			local indent
+			if token.list_type == "numbered" then
+				local max_num_width = #tostring(#token.items)
+				list_marker = function(i)
+					return string.format("%0" .. max_num_width .."d", i) .. ". "
+				end
+				-- list_marker looks like |100. |, make sure text is aligned
+				-- below it.
+				indent = (" "):rep(max_num_width+2)
+			else
+				list_marker = function() return "* " end
+				indent = "  "
+			end
+
+			for i, item_tokens in ipairs(token.items) do
+				self:append_tokens({Tokens.fixed_text({"", list_marker(i)})})
+				self:push_indent(indent)
 				self:append_tokens(item_tokens)
 				self:pop_indent()
 			end
@@ -120,7 +135,7 @@ function TextRenderer:fn_doc(opts)
 		vim.list_extend(param_tokens, Parser.parse_markdown(param.description))
 		paramlist_items[i] = param_tokens
 	end
-	table.insert(tokens, Tokens.list(paramlist_items))
+	table.insert(tokens, Tokens.list(paramlist_items, "bulleted"))
 
 	self:append_tokens(tokens)
 end
