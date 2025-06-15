@@ -59,4 +59,22 @@ function M.funcinfo(typename, funcname)
 	} --[[@as MDGen.FuncInfo]]
 end
 
+---@alias MDGen.MemberInfo MDGen.ParamInfo
+
+---@class MDGen.ClassInfo
+---@field members MDGen.MemberInfo[]
+
+function M.classinfo(typename)
+	local raw_classdoc = doc_index[typename].ref
+	local members = {}
+	for i, member in ipairs(raw_classdoc.members) do
+		members[i] = {
+			name = member.name,
+			type = member.typ,
+			description = member.description
+		} --[[@as MDGen.MemberInfo]]
+	end
+	return {members = members} --[[@as MDGen.ClassInfo]]
+end
+
 return M
