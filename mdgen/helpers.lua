@@ -51,11 +51,11 @@ function M.fn_doc_tokens(opts)
 	local info = Typeinfo.funcinfo(opts.typename, opts.funcname)
 	local tokens = {
 		prototype_string(opts.typename, info) .. ":",
-		paramlist_to_mdlist(info.params, {opts_expand = opts_expand})
 	}
-
-
 	vim.list_extend(tokens, Parser.parse_markdown(info.description))
+	table.insert(tokens, paramlist_to_mdlist(info.params, {opts_expand = opts_expand}))
+
+
 
 	return tokens
 end

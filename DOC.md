@@ -3,12 +3,10 @@
 This project models a cat. The cat can meow and eat, without limit.
 
 * My doc:
-  * `Cat.meow(target, volume)`:
+  * `Cat.meow(target, volume)`: Make the cat meow at something, in some volume.
     * `target: string` What to meow at.
     * `volume: number` How loud to meow.
-
-    Make the cat meow at something, in some volume.
-  * `Cat.eat(amount, foodname)`:
+  * `Cat.eat(amount, foodname)`: Make the cat eat something.
     * `amount: number` How much to eat.  
       The cat may eat a lot. Call like
       ```lua
@@ -28,12 +26,10 @@ This project models a cat. The cat can meow and eat, without limit.
       10. apple
       11. apple
       12. apple
-
-    Make the cat eat something.
   * ```lua
     print("lel")
     ```
-  * `Cat.enemies(opts)`:
+  * `Cat.enemies(opts)`: Return a list of enemies of all cats.
     * `opts: CatEnemiesOpts` Lots of options for cats' enemies.  
       Valid keys are:
       * `filter: fun(string) -> boolean?` Optionally filter enemies by their name.
@@ -46,8 +42,6 @@ This project models a cat. The cat can meow and eat, without limit.
           ```lua
           print("some text")
           ```
-
-    Return a list of enemies of all cats.
   * lel lol  
     lul
     ```lua
