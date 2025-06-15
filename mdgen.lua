@@ -11,14 +11,14 @@ local i = 1
 while i <= #template_lines do
 	local line_i = template_lines[i]
 
-	local matched_indent = line_i:match("(%s*)```lua render_region")
+	local matched_indent, backticks = line_i:match("(%s*)(%`+)lua render_region")
 	if matched_indent then
 		local funcstr = ""
 
 		for j = i+1, #template_lines do
 			local line_j = template_lines[j]
 
-			if line_j:match("%s*```") then
+			if line_j:match("%s*" .. backticks) then
 				-- we have found a render_region, parse the lua-lines in it and
 				-- execute them.
 				local f, err = loadstring(funcstr)
