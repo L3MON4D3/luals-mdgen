@@ -21,6 +21,9 @@ May be any food a cat does not die from.
   asasdf
   ```
 qwer
+
+1. sadf
+2. qwer
 ]]
 
 		local res = { "How", "much", "to", "eat.", { text = { "  ", "" }, type = "fixed_text" }, "The", "cat", "[lel lel](lol)", "may", "eat", "a", "`lel lol lul`", "lot.", "Call", "like", {
@@ -34,8 +37,13 @@ qwer
 				  text = { "", "```lua", "asdf asdf", "asdf", "asasdf", "```", "" },
 				  type = "fixed_text"
 				} } },
+			list_type = "bulleted",
 			type = "list"
-		  }, "qwer" }
+		  }, "qwer", {
+		  	items = {{"sadf"}, {"qwer"}},
+		  	type = "list",
+		  	list_type = "numbered"
+		  } }
 
 		assert.are.same(res, parser.parse_markdown(text))
 	end)

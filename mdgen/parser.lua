@@ -106,13 +106,24 @@ parsers.list_marker_plus = ignore
 parsers.list_marker_dot = ignore
 parsers.list_marker_parenthesis = ignore
 
+local marker_to_list_type = {
+	list_marker_star = "bulleted",
+	list_marker_minus = "bulleted",
+	list_marker_plus = "bulleted",
+	list_marker_dot = "numbered",
+	list_marker_parenthesis = "numbered",
+}
+
 function parsers.list(source, node)
 	local items = {}
 	for i, item_node in ipairs(node:named_children()) do
 		items[i] = parsers.top_level(source, item_node)
 	end
 
-	return { Tokens.list(items) }
+	-- node = list(list_item(list_marker_* ...))
+	local marker = node:named_child(0):named_child(0)
+
+	return { Tokens.list(items, marker_to_list_type[marker:type()]) }
 end
 
 function parsers.top_level(source, tl_node)
