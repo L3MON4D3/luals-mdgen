@@ -65,7 +65,7 @@ function parsers.code_span(source, node)
 end
 function parsers.hard_line_break()
 	-- preserve hard line break in text.
-	return { Tokens.fixed_text({"  ", ""}) }
+	return { Tokens.fixed_text({"  "}), Tokens.combinable_linebreak(1) }
 end
 
 function parsers.fenced_code_block(source, node)
@@ -93,10 +93,7 @@ function parsers.fenced_code_block(source, node)
 	end
 	vim.list_extend(lines, split_text)
 
-	-- append a final newline.
-	table.insert(lines, "")
-
-	return { Tokens.fixed_text(lines) }
+	return { Tokens.fixed_text(lines), Tokens.combinable_linebreak(1) }
 end
 
 local function ignore() return {} end
