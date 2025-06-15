@@ -1,9 +1,8 @@
 local Tokens = require("mdgen.tokens")
-local Parser = require("mdgen.parser")
-local Util = require("mdgen.util")
-local Typeinfo = require("mdgen.typeinfo")
+local Helpers = require("mdgen.helpers")
 
 ---@class MDGen.TextRenderer
+---Processes a stream of tokens and stores the intermediary state.
 ---@field lines string[] The lines rendered so far.
 ---@field indentstack string[] Stack of indent, can push/pop.
 ---@field next_indent string effective indent.
@@ -12,6 +11,9 @@ local Typeinfo = require("mdgen.typeinfo")
 ---Renders markdown-formatted lines.
 ---@field n_virtual_linebreaks number Minimum number of linebreaks to insert
 ---before the next text-token.
+---@field prev_token MDGen.Token? Previously encountered token, initially nil.
+---@field pre_token_callbacks fun(next_token:MDGen.Token)[]
+---Callbacks to execute before processing the next token.
 local TextRenderer = {}
 TextRenderer.__index = TextRenderer
 
@@ -30,7 +32,9 @@ function TextRenderer.new(opts)
 		indentstack = {opts.base_indent},
 		next_indent = opts.base_indent,
 		current_line_len = #opts.base_indent,
-		n_virtual_linebreaks = 0
+		n_virtual_linebreaks = 0,
+		prev_token = nil,
+		pre_token_callbacks = {}
 	}, TextRenderer)
 end
 
@@ -69,6 +73,7 @@ end
 ---@param tokens MDGen.Token[]
 function TextRenderer:append_tokens(tokens)
 	for _, token in ipairs(tokens) do
+		self:consume_pre_token_callbacks(token)
 		if type(token) == "string" then
 			self:insert_virtual_linebreaks()
 
@@ -113,76 +118,67 @@ function TextRenderer:append_tokens(tokens)
 			end
 
 			for i, item_tokens in ipairs(token.items) do
-				self:append_tokens({Tokens.fixed_text({"", list_marker(i)})})
+				self:append_tokens({
+					-- surround the marker with data-tokens so tokens
+					-- before/after it can check for its presence.
+					Tokens.data({listmarker = true}),
+					Tokens.combinable_linebreak(1),
+					Tokens.fixed_text({list_marker(i)}),
+					Tokens.data({listmarker = true})
+				})
 				self:push_indent(indent)
 				self:append_tokens(item_tokens)
 				self:pop_indent()
 			end
 
-			self:append_tokens({ Tokens.combinable_linebreak(2) })
+			-- only insert the combinable linebreak if the next token is not a list-item
+			self:add_pre_token_callback(function(next_token)
+				if not (Tokens.is_data(next_token) and next_token.data.listmarker) then
+					self:append_tokens({ Tokens.combinable_linebreak(2) })
+				end
+			end)
 		elseif Tokens.is_combinable_linebreak(token) then
 			self.n_virtual_linebreaks = math.max(token.n, self.n_virtual_linebreaks)
+		elseif Tokens.is_prev_cb(token) then
+			self:append_tokens(token.callback(self.prev_token))
+		else
+			-- DataToken lands here.
 		end
+		self.prev_token = token
 	end
 end
 
----Generate a function-prototype string in markdown
----@param finfo MDGen.FuncInfo
-local function prototype_string(typename, finfo)
-	local fn_line = "`" .. typename .. ".".. finfo.name .. "("
+function TextRenderer:add_pre_token_callback(fn)
+	table.insert(self.pre_token_callbacks, fn)
+end
 
-	if #finfo.params > 0 then
-		for _, param in ipairs(finfo.params) do
-			fn_line = fn_line .. ("%s, "):format(param.name)
-		end
-		-- omit trailing ", ".
-		fn_line = fn_line:sub(1,-3)
+function TextRenderer:consume_pre_token_callbacks(next_token)
+	local cbs = self.pre_token_callbacks
+	-- clear before running callback, callback could call `append_tokens` and
+	-- cause a loop.
+	self.pre_token_callbacks = {}
+	for _, cb in ipairs(cbs) do
+		cb(next_token)
 	end
-
-	return fn_line .. ")`"
 end
 
-function TextRenderer:fn_doc(opts)
-	vim.validate("funcname", opts.funcname, {"string"})
-	vim.validate("typename", opts.typename, {"string"})
+local public_render_fn_names = { "append_tokens", "push_indent", "pop_indent" }
 
-	local info = Typeinfo.funcinfo(opts.typename, opts.funcname)
-	local tokens = { prototype_string(opts.typename, info) .. ":" }
+function TextRenderer:get_render_env()
+	local env = {}
 
-	vim.list_extend(tokens, Parser.parse_markdown(info.description))
-
-	local paramlist_items = {}
-	for i, param in ipairs(info.params) do
-		local param_tokens = {("`%s: %s`"):format(param.name, param.type)}
-		vim.list_extend(param_tokens, Parser.parse_markdown(param.description))
-		paramlist_items[i] = param_tokens
-	end
-	table.insert(tokens, Tokens.list(paramlist_items, "bulleted"))
-
-	self:append_tokens(tokens)
-end
-
-function TextRenderer:newline()
-	self:append_tokens({Tokens.fixed_text({"", ""})})
-end
-
-function TextRenderer:remove_tail_lines(n)
-	for i = #self.lines-n+1, #self.lines do
-		self.lines[i] = nil
-	end
-	self.current_line_len = #self.lines[#self.lines]
-end
-
-local public_render_fn_names = { "fn_doc", "newline", "remove_tail_lines" }
-
-function TextRenderer:get_wrapped_render_fns()
-	local wrapped_render_fns = {}
 	for _, fname in ipairs(public_render_fn_names) do
-		wrapped_render_fns[fname] = function(...)
+		env[fname] = function(...)
 			self[fname](self, ...)
 		end
 	end
-	return wrapped_render_fns
+	for fname, f in pairs(Helpers) do
+		env[fname] = f
+		env[fname:gsub("_tokens$", "")] = function(...)
+			self:append_tokens(f(...))
+		end
+	end
+	return env
 end
 
 function TextRenderer:get_final_lines()

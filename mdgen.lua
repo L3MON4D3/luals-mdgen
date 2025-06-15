@@ -31,7 +31,7 @@ while i <= #template_lines do
 					base_indent = matched_indent
 				})
 
-				local f_mt = setmetatable(renderer:get_wrapped_render_fns(), {__index = _G})
+				local f_mt = setmetatable(renderer:get_render_env(), {__index = _G})
 
 				setfenv(f, f_mt)
 				f()
