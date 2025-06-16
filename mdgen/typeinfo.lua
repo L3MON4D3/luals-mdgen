@@ -1,3 +1,5 @@
+local Util = require("mdgen.util")
+
 local json_name = "./doc.json"
 
 local json_content = table.concat(vim.fn.readfile(json_name))
@@ -33,12 +35,12 @@ local M = {}
 
 ---@class MDGen.ParamInfo
 ---@field name string
----@field type string
----@field description string \n-concatenated
+---@field type string?
+---@field description string? \n-concatenated
 
 ---@class MDGen.FuncInfo
 ---@field name string
----@field description string \n-concatenated
+---@field description string? \n-concatenated
 ---@field params MDGen.ParamInfo[]
 
 function M.funcinfo(typename, funcname)
@@ -48,17 +50,18 @@ function M.funcinfo(typename, funcname)
 	for i, param in ipairs(raw_fdoc.params) do
 		params[i] = {
 			name = param.name,
-			type = param.typ,
-			description = param.desc
+			type = Util.ternary(param.typ ~= vim.NIL, param.typ, nil),
+			description = Util.ternary(param.desc ~= vim.NIL, param.desc, nil)
 		} --[[@as MDGen.ParamInfo]]
 	end
 	return {
 		name = raw_fdoc.name,
-		description = raw_fdoc.description,
+		description = Util.ternary(raw_fdoc.description ~= vim.NIL, raw_fdoc.description, nil),
 		params = params
 	} --[[@as MDGen.FuncInfo]]
 end
 
+--for now these two are identical.
 ---@alias MDGen.MemberInfo MDGen.ParamInfo
 
 ---@class MDGen.ClassInfo
@@ -71,7 +74,7 @@ function M.classinfo(typename)
 		members[i] = {
 			name = member.name,
 			type = member.typ,
-			description = member.description
+			description = Util.ternary(member.description ~= vim.NIL, member.description, nil)
 		} --[[@as MDGen.MemberInfo]]
 	end
 	return {members = members} --[[@as MDGen.ClassInfo]]

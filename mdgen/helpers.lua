@@ -2,13 +2,14 @@ local Tokens = require("mdgen.tokens")
 local Typeinfo = require("mdgen.typeinfo")
 local Parser = require("mdgen.parser")
 local Str = require("mdgen.str")
+local Util = require("mdgen.util")
 
 local M = {}
 
 ---Generate a function-prototype string in markdown
 ---@param finfo MDGen.FuncInfo
-local function prototype_string(typename, finfo)
-	local fn_line = "`" .. typename .. ".".. finfo.name .. "("
+local function prototype_string(display_fname, finfo)
+	local fn_line = "`" .. display_fname .. "("
 
 	if #finfo.params > 0 then
 		for _, param in ipairs(finfo.params) do
@@ -24,10 +25,21 @@ end
 local function paramlist_to_mdlist(items, opts)
 	local paramlist_items = {}
 	for i, param in ipairs(items) do
-		local param_tokens = {("`%s: %s`"):format(param.name, param.type)}
-		vim.list_extend(param_tokens, Parser.parse_markdown(param.description))
+		if not param.description and not param.type then
+			-- there is no additional data, don't append.
+			goto continue
+		end
+		local param_id = "`" .. param.name
+		if param.type then
+			param_id = param_id .. ": " .. param.type
+		end
+		param_id = param_id .. "`"
+		local param_tokens = {param_id}
+		if param.description then
+			vim.list_extend(param_tokens, Parser.parse_markdown(param.description))
+		end
 
-		if opts.opts_expand[param.type] then
+		if param.type and opts.opts_expand[param.type] then
 			vim.list_extend(param_tokens, {
 				Tokens.fixed_text({"  "}), Tokens.combinable_linebreak(1),
 				"Valid", "keys", "are:" })
@@ -37,6 +49,8 @@ local function paramlist_to_mdlist(items, opts)
 		end
 
 		paramlist_items[i] = param_tokens
+
+		::continue::
 	end
 	return Tokens.list(paramlist_items, "bulleted")
 end
@@ -45,15 +59,21 @@ function M.fn_doc_tokens(opts)
 	vim.validate("funcname", opts.funcname, {"string"})
 	vim.validate("typename", opts.typename, {"string"})
 	vim.validate("opts_expand", opts.opts_expand, {"table", "nil"})
+	vim.validate("display_fname", opts.display_fname, {"string", "nil"})
 
 	local opts_expand = opts.opts_expand or {}
+	local display_fname = opts.display_fname or opts.typename .. "." .. opts.funcname
 
 	local info = Typeinfo.funcinfo(opts.typename, opts.funcname)
+	local param_list_tokens = paramlist_to_mdlist(info.params, {opts_expand = opts_expand})
 	local tokens = {
-		prototype_string(opts.typename, info) .. ":",
+		-- only insert `:` if there is something after the prototype.
+		prototype_string(display_fname, info) .. Util.ternary(#param_list_tokens > 0 or info.description ~= nil, ":", ""),
 	}
-	vim.list_extend(tokens, Parser.parse_markdown(info.description))
-	table.insert(tokens, paramlist_to_mdlist(info.params, {opts_expand = opts_expand}))
+	if info.description then
+		vim.list_extend(tokens, Parser.parse_markdown(info.description))
+	end
+	table.insert(tokens, param_list_tokens)
 
 
 
