@@ -77,4 +77,16 @@ function M.classinfo(typename)
 	return {members = members} --[[@as MDGen.ClassInfo]]
 end
 
+function M.fnames(typename)
+	local raw_classdoc = doc_index[typename].ref
+
+	local functions = {}
+	for _, member in ipairs(raw_classdoc.members) do
+		if member.type == "fn" then
+			table.insert(functions, member.name)
+		end
+	end
+	return functions
+end
+
 return M
