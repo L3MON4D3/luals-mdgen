@@ -1,5 +1,6 @@
 local Tokens = require("mdgen.tokens")
 local Helpers = require("mdgen.helpers")
+local Typeinfo = require("mdgen.typeinfo")
 
 ---@class MDGen.TextRenderer
 ---Processes a stream of tokens and stores the intermediary state.
@@ -177,6 +178,9 @@ function TextRenderer:get_render_env()
 		env[fname:gsub("_tokens$", "")] = function(...)
 			self:append_tokens(f(...))
 		end
+	end
+	for fname, f in pairs(Typeinfo) do
+		env[fname] = f
 	end
 	return env
 end
