@@ -26,7 +26,9 @@ function Cat:meow(target, volume) end
 ---1. apple
 ---1. apple
 ---1. apple
-function Cat:eat(amount, foodname) end
+function Cat:eat(amount, foodname)
+	return
+end
 
 ---@class CatEnemiesExtraOpts
 ---@field o1 number First extra-opt.
@@ -43,4 +45,6 @@ function Cat:eat(amount, foodname) end
 
 ---Return a list of enemies of all cats.
 ---@param opts CatEnemiesOpts Lots of options for cats' enemies.
+---@return boolean has_enemies Whether the cat has enemies.
+---@return string[] enemies List of enemie's names.
 function Cat.enemies(opts) end

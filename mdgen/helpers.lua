@@ -18,17 +18,55 @@ local function prototype_string(display_fname, finfo)
 		-- omit trailing ", ".
 		fn_line = fn_line:sub(1,-3)
 	end
+	fn_line = fn_line .. ")"
+	if #finfo.returns > 0 then
+		fn_line = fn_line .. ": "
+		for _, retval in ipairs(finfo.returns) do
+			fn_line = fn_line .. ("%s, "):format(retval.type)
+		end
+		-- omit trailing ", ".
+		fn_line = fn_line:sub(1,-3)
+	end
 
-	return fn_line .. ")`"
+	return fn_line .. "`"
 end
 
+local function fieldlist_to_mdlist(fields, opts)
+	local list_items = {}
+
+	for i, field in ipairs(fields) do
+		local field_id = "`" .. field.name
+		if field.type then
+			field_id = field_id .. ": " .. field.type
+		end
+		field_id = field_id .. "`"
+		local param_tokens = {field_id}
+		if field.description then
+			vim.list_extend(param_tokens, Parser.parse_markdown(field.description))
+		end
+
+		if field.type and opts.opts_expand[field.type] then
+			vim.list_extend(param_tokens, {
+				Tokens.fixed_text({"  "}), Tokens.combinable_linebreak(1),
+				"Valid", "keys", "are:" })
+
+			local class_info = Typeinfo.classinfo(field.type)
+			table.insert(param_tokens, fieldlist_to_mdlist(class_info.members, opts))
+		end
+
+		list_items[i] = param_tokens
+	end
+
+	return Tokens.list(list_items, "bulleted")
+end
 local function paramlist_to_mdlist(items, opts)
 	local paramlist_items = {}
+	local additional_info = false
 	for i, param in ipairs(items) do
-		if not param.description and not param.type then
-			-- there is no additional data, don't append.
-			goto continue
+		if param.description or param.type then
+			additional_info = true
 		end
+
 		local param_id = "`" .. param.name
 		if param.type then
 			param_id = param_id .. ": " .. param.type
@@ -45,14 +83,44 @@ local function paramlist_to_mdlist(items, opts)
 				"Valid", "keys", "are:" })
 
 			local class_info = Typeinfo.classinfo(param.type)
-			table.insert(param_tokens, paramlist_to_mdlist(class_info.members, opts))
+			table.insert(param_tokens, fieldlist_to_mdlist(class_info.members, opts))
 		end
 
 		paramlist_items[i] = param_tokens
-
-		::continue::
 	end
-	return Tokens.list(paramlist_items, "bulleted")
+	if additional_info then
+		return Tokens.list(paramlist_items, "bulleted")
+	else
+		return nil
+	end
+end
+
+local function returnlist_to_mdlist(items)
+	local returnlist_items = {}
+	local additional_info = false
+	for i, retval in ipairs(items) do
+		if retval.name or retval.description then
+			additional_info = true
+		end
+
+		local retval_id = "`"
+		if retval.name then
+			retval_id = retval_id .. retval.name .. ": "
+		end
+		retval_id = retval_id .. retval.type .. "`"
+		local retval_tokens = {retval_id}
+
+		if retval.description then
+			vim.list_extend(retval_tokens, Parser.parse_markdown(retval.description))
+		end
+
+		returnlist_items[i] = retval_tokens
+	end
+	if additional_info then
+		return Tokens.list(returnlist_items, "bulleted")
+	else
+		return nil
+	end
 end
 
 function M.fn_doc_tokens(opts)
@@ -65,17 +133,33 @@ function M.fn_doc_tokens(opts)
 	local display_fname = opts.display_fname or opts.typename .. "." .. opts.funcname
 
 	local info = Typeinfo.funcinfo(opts.typename, opts.funcname)
-	local param_list_tokens = paramlist_to_mdlist(info.params, {opts_expand = opts_expand})
+	local param_list = paramlist_to_mdlist(info.params, {opts_expand = opts_expand})
+	local return_list = returnlist_to_mdlist(info.returns)
+
 	local tokens = {
 		-- only insert `:` if there is something after the prototype.
-		prototype_string(display_fname, info) .. Util.ternary(#param_list_tokens > 0 or info.description ~= nil, ":", ""),
+		prototype_string(display_fname, info) .. Util.ternary(param_list ~= nil or info.description ~= nil or return_list ~= nil, ":", ""),
 	}
 	if info.description then
 		vim.list_extend(tokens, Parser.parse_markdown(info.description))
 	end
-	table.insert(tokens, param_list_tokens)
-
-
+	if param_list then
+		table.insert(tokens, param_list)
+	end
+	if return_list then
+		if info.description and not param_list then
+			-- in this case, a linebreak between the function-description and
+			-- the next short sentence seems sensible.
+			vim.list_extend(tokens, {
+				Tokens.fixed_text({"  "}),
+				Tokens.combinable_linebreak(1)
+			})
+		end
+		vim.list_extend(tokens, {
+			"The", "function", "returns", "the", "following", "values:",
+			return_list
+		})
+	end
 
 	return tokens
 end
