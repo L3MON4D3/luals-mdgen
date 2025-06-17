@@ -10,6 +10,7 @@ local M = {}
 -- * lists
 
 local parsers = {}
+local inline_parsers = {}
 
 local function posbyte(_, _, byte)
 	return byte
@@ -45,27 +46,39 @@ function parsers.paragraph(source, node)
 
 		append_text(current_from, named_start)
 
-		local node_parser = parsers[named_child:type()]
+		local node_parser = inline_parsers[named_child:type()]
 		if not node_parser then
 			error("No parser for node-type " .. node:type() .. " in " .. vim.treesitter.get_node_text(node,source) .. ".")
 		end
-		vim.list_extend(ast, node_parser(source, named_child))
+		local node_tokens, tokens_end = node_parser(source, named_child)
+		vim.list_extend(ast, node_tokens)
 
-		current_from = posbyte(named_child:end_())+1
+		current_from = tokens_end+1
 	end
 	append_text(current_from, posbyte(node:end_()))
 
 	return ast
 end
-function parsers.inline_link(source, node)
-	return {vim.treesitter.get_node_text(node, source)}
+
+-- these return the position the text should continue at, in addition to the
+-- tokens.
+function inline_parsers.inline_link(source, node)
+	local node_text = vim.treesitter.get_node_text(node, source)
+	local tokens_end = posbyte(node:end_())
+
+	local non_whitespace_from, non_whitespace_to, non_whitespace_text = source:find("([^%s]+)", tokens_end+1)
+
+	if non_whitespace_from == tokens_end+1 then
+		node_text = node_text .. non_whitespace_text
+		tokens_end = non_whitespace_to
+	end
+	return {node_text}, tokens_end
 end
-function parsers.code_span(source, node)
-	return {vim.treesitter.get_node_text(node, source)}
-end
-function parsers.hard_line_break()
+inline_parsers.code_span = inline_parsers.inline_link
+
+function inline_parsers.hard_line_break(_, node)
 	-- preserve hard line break in text.
-	return { Tokens.fixed_text({"  "}), Tokens.combinable_linebreak(1) }
+	return { Tokens.fixed_text({"  "}), Tokens.combinable_linebreak(1) }, posbyte(node:end_())
 end
 
 local function pre_codeblock_cb(prev_token)
