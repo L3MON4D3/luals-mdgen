@@ -182,6 +182,10 @@ function TextRenderer:get_render_env()
 	for fname, f in pairs(Typeinfo) do
 		env[fname] = f
 	end
+	env.tokens = {}
+	for fname, f in pairs(Tokens) do
+		env.tokens[fname] = f
+	end
 	return env
 end
 
