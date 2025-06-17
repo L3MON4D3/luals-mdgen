@@ -38,10 +38,16 @@ local M = {}
 ---@field type string?
 ---@field description string? \n-concatenated
 
+---@class MDGen.ReturnInfo
+---@field type string
+---@field name string?
+---@field description string? \n-concatenated
+
 ---@class MDGen.FuncInfo
 ---@field name string
 ---@field description string? \n-concatenated
 ---@field params MDGen.ParamInfo[]
+---@field returns MDGen.ReturnInfo[]
 
 function M.funcinfo(typename, funcname)
 	local raw_fdoc = doc_index[typename].members_by_name[funcname]
@@ -54,10 +60,30 @@ function M.funcinfo(typename, funcname)
 			description = Util.ternary(param.desc ~= vim.NIL, param.desc, nil)
 		} --[[@as MDGen.ParamInfo]]
 	end
+	local retvals = {}
+	for i, param in ipairs(raw_fdoc.returns) do
+		retvals[i] = {
+			name = Util.ternary(param.name ~= vim.NIL, param.name, nil),
+			type = param.typ,
+			description = Util.ternary(param.desc ~= vim.NIL, param.desc, nil)
+		} --[[@as MDGen.ReturnInfo]]
+	end
+	-- remove trailing nil-returns.
+	-- Mainly for clearing the table for functions that don't return anything,
+	-- but there seems to be no reason for including trailing nil's in general.
+	for i = #retvals, 1, -1 do
+		if retvals[i].type == "nil" then
+			retvals[i] = nil
+		else
+			break
+		end
+	end
+
 	return {
 		name = raw_fdoc.name,
 		description = Util.ternary(raw_fdoc.description ~= vim.NIL, raw_fdoc.description, nil),
-		params = params
+		params = params,
+		returns = retvals
 	} --[[@as MDGen.FuncInfo]]
 end
 
