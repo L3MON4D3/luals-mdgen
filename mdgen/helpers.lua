@@ -156,7 +156,7 @@ function M.fn_doc_tokens(opts)
 			})
 		end
 		vim.list_extend(tokens, {
-			"The", "function", "returns", "the", "following", "values:",
+			"This", "function", "returns:",
 			return_list
 		})
 	end
