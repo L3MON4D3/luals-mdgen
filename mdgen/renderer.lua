@@ -60,7 +60,7 @@ function TextRenderer:insert_virtual_linebreaks()
 		-- there is always at least one line, but if it is empty, there is
 		-- nothing to separate with these linebreaks => don't insert them, just
 		-- clear n_virtual_linebreaks.
-		if not (#self.lines == 1 and self.lines[1]:match("^%s+$")) then
+		if not (#self.lines == 1 and self.lines[1]:match("^%s*$")) then
 			for _ = 1, self.n_virtual_linebreaks do
 				table.insert(self.lines, self.next_indent)
 			end
