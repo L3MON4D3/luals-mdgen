@@ -50,7 +50,10 @@ local function fieldlist_to_mdlist(fields, opts)
 				Tokens.fixed_text({"  "}), Tokens.combinable_linebreak(1),
 				"Valid", "keys", "are:" })
 
-			local class_info = Typeinfo.classinfo(field.type)
+			local class_info = Typeinfo.classinfo(opts.opts_expand[field.type].explain_type)
+			if not class_info then
+				error("explain_type for " .. field.type .. " was " .. opts.opts_expand[field.type].explain_type .. " but no information could be found on that type.")
+			end
 			table.insert(param_tokens, fieldlist_to_mdlist(class_info.members, opts))
 		end
 
@@ -82,12 +85,16 @@ local function paramlist_to_mdlist(items, opts)
 				Tokens.fixed_text({"  "}), Tokens.combinable_linebreak(1),
 				"Valid", "keys", "are:" })
 
-			local class_info = Typeinfo.classinfo(param.type)
+			local class_info = Typeinfo.classinfo(opts.opts_expand[param.type].explain_type)
+			if not class_info then
+				error("explain_type for " .. param.type .. " was " .. opts.opts_expand[param.type].explain_type .. " but no information could be found on that type.")
+			end
 			table.insert(param_tokens, fieldlist_to_mdlist(class_info.members, opts))
 		end
 
 		paramlist_items[i] = param_tokens
 	end
+
 	if additional_info then
 		return Tokens.list(paramlist_items, "bulleted")
 	else
