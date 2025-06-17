@@ -93,7 +93,13 @@ end
 ---@class MDGen.ClassInfo
 ---@field members MDGen.MemberInfo[]
 
+---Find info on some class.
+---@param typename string Name of the class.
+---@return MDGen.ClassInfo? class_info Information on the queried class.
 function M.classinfo(typename)
+	if not doc_index[typename] then
+		return nil
+	end
 	local raw_classdoc = doc_index[typename].ref
 	local members = {}
 	for i, member in ipairs(raw_classdoc.members) do
