@@ -99,13 +99,29 @@ function M.classinfo(typename)
 		return nil
 	end
 	local raw_classdoc = doc_index[typename].ref
+
 	local members = {}
-	for i, member in ipairs(raw_classdoc.members) do
-		members[i] = {
+	-- track member names so we can use the most-specific member in case of
+	-- duplicates.
+	local member_names = {}
+	for _, member in ipairs(raw_classdoc.members) do
+		member_names[member.name] = true
+		table.insert(members, {
 			name = member.name,
 			type = member.typ,
 			description = Util.ternary(member.description ~= vim.NIL, member.description, nil)
-		} --[[@as MDGen.MemberInfo]]
+		} --[[@as MDGen.MemberInfo]])
+	end
+	for _, basename in ipairs(raw_classdoc.bases) do
+		local baseinfo = M.classinfo(basename)
+		if not baseinfo then
+			error("Could not find base-class " .. basename)
+		end
+		for _, member in ipairs(baseinfo.members) do
+			if not member_names[member.name] then
+				table.insert(members, member)
+			end
+		end
 	end
 	return {members = members} --[[@as MDGen.ClassInfo]]
 end
