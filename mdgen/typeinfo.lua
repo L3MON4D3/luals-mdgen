@@ -31,19 +31,23 @@ end)() --[[@as MDGen.DocIndex]]
 
 local M = {}
 
+---@class MDGen.Description
+---@field content string \n-concatenated
+---@field src string File that contains this description
+
 ---@class MDGen.ParamInfo
 ---@field name string
 ---@field type string?
----@field description string? \n-concatenated
+---@field description MDGen.Description?
 
 ---@class MDGen.ReturnInfo
 ---@field type string
 ---@field name string?
----@field description string? \n-concatenated
+---@field description MDGen.Description?
 
 ---@class MDGen.FuncInfo
 ---@field name string
----@field description string? \n-concatenated
+---@field description MDGen.Description? \n-concatenated
 ---@field params MDGen.ParamInfo[]
 ---@field returns MDGen.ReturnInfo[]
 
@@ -55,7 +59,7 @@ function M.funcinfo(typename, funcname)
 		params[i] = {
 			name = param.name,
 			type = Util.ternary(param.typ ~= vim.NIL, param.typ, nil),
-			description = Util.ternary(param.desc ~= vim.NIL, param.desc, nil)
+			description = Util.ternary(param.desc ~= vim.NIL, {content = param.desc, src = raw_fdoc.loc.file} --[[@as MDGen.Description]], nil)
 		} --[[@as MDGen.ParamInfo]]
 	end
 	local retvals = {}
@@ -63,7 +67,7 @@ function M.funcinfo(typename, funcname)
 		retvals[i] = {
 			name = Util.ternary(param.name ~= vim.NIL, param.name, nil),
 			type = param.typ,
-			description = Util.ternary(param.desc ~= vim.NIL, param.desc, nil)
+			description = Util.ternary(param.desc ~= vim.NIL, {content = param.desc, src = raw_fdoc.loc.file} --[[@as MDGen.Description]], nil)
 		} --[[@as MDGen.ReturnInfo]]
 	end
 	-- remove trailing nil-returns.
@@ -79,7 +83,7 @@ function M.funcinfo(typename, funcname)
 
 	return {
 		name = raw_fdoc.name,
-		description = Util.ternary(raw_fdoc.description ~= vim.NIL, raw_fdoc.description, nil),
+		description = Util.ternary(raw_fdoc.description ~= vim.NIL, {content = raw_fdoc.description, src = raw_fdoc.loc.file} --[[@as MDGen.Description]], nil),
 		params = params,
 		returns = retvals
 	} --[[@as MDGen.FuncInfo]]
@@ -109,7 +113,7 @@ function M.classinfo(typename)
 		table.insert(members, {
 			name = member.name,
 			type = member.typ,
-			description = Util.ternary(member.description ~= vim.NIL, member.description, nil)
+			description = Util.ternary(member.description ~= vim.NIL, {content = member.description, src = member.loc.file} --[[@as MDGen.Description]], nil)
 		} --[[@as MDGen.MemberInfo]])
 	end
 	for _, basename in ipairs(raw_classdoc.bases) do

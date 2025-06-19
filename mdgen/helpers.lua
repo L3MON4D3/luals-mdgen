@@ -31,6 +31,17 @@ local function prototype_string(display_fname, finfo)
 	return fn_line .. "`"
 end
 
+---@class MDGen.ExpandSpec
+---@field explain_type string Description of which type to insert at this
+---position.
+
+---@class MDGen.Opts.FieldListToMdlist
+---@field opts_expand table<string, MDGen.ExpandSpec>
+
+---Generate a markdown-list from a list of fields of a class.
+---@param fields MDGen.MemberInfo[]
+---@param opts MDGen.Opts.FieldListToMdlist Additional, optional arguments
+---@return MDGen.ListToken
 local function fieldlist_to_mdlist(fields, opts)
 	local list_items = {}
 
