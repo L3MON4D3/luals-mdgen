@@ -1,6 +1,6 @@
 local Util = require("mdgen.util")
 
-local json_content = table.concat(vim.fn.readfile(JSONNAME))
+local json_content = table.concat(vim.fn.readfile(JSONFile))
 local doc = vim.json.decode(json_content)
 
 ---@class MDGen.TypeIndex
