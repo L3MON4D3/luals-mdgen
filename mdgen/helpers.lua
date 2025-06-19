@@ -100,6 +100,9 @@ local function paramlist_to_mdlist(items, opts)
 			if not class_info then
 				error("explain_type for " .. param.type .. " was " .. opts.opts_expand[param.type].explain_type .. " but no information could be found on that type.")
 			end
+			if opts.pre_list_linebreak then
+				table.insert(param_tokens, Tokens.combinable_linebreak(2))
+			end
 			table.insert(param_tokens, fieldlist_to_mdlist(class_info.members, opts))
 		end
 
@@ -146,12 +149,14 @@ function M.fn_doc_tokens(opts)
 	vim.validate("typename", opts.typename, {"string"})
 	vim.validate("opts_expand", opts.opts_expand, {"table", "nil"})
 	vim.validate("display_fname", opts.display_fname, {"string", "nil"})
+	vim.validate("pre_list_linebreak", opts.pre_list_linebreak, {"boolean", "nil"})
 
 	local opts_expand = opts.opts_expand or {}
+	local pre_list_linebreak = vim.F.if_nil(opts.pre_list_linebreak, false)
 	local display_fname = opts.display_fname or opts.typename .. "." .. opts.funcname
 
 	local info = Typeinfo.funcinfo(opts.typename, opts.funcname)
-	local param_list = paramlist_to_mdlist(info.params, {opts_expand = opts_expand})
+	local param_list = paramlist_to_mdlist(info.params, {opts_expand = opts_expand, pre_list_linebreak = pre_list_linebreak})
 	local return_list = returnlist_to_mdlist(info.returns)
 
 	local tokens = {
@@ -162,6 +167,9 @@ function M.fn_doc_tokens(opts)
 		vim.list_extend(tokens, Parser.parse_markdown(info.description))
 	end
 	if param_list then
+		if opts.pre_list_linebreak then
+			table.insert(tokens, Tokens.combinable_linebreak(2))
+		end
 		table.insert(tokens, param_list)
 	end
 	if return_list then
@@ -175,6 +183,7 @@ function M.fn_doc_tokens(opts)
 		end
 		vim.list_extend(tokens, {
 			"This", "function", "returns:",
+			Util.ternary(pre_list_linebreak, Tokens.combinable_linebreak(2), nil),
 			return_list
 		})
 	end
