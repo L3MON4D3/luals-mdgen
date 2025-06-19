@@ -34,7 +34,7 @@
           name = "luals-mdgen";
           runtimeInputs = rt_deps;
           text = ''
-            LUA_PATH="${./.}/?.lua;${pkgs.luajitPackages.argparse}/share/lua/5.1/?.lua;$LUA_PATH" nvim -u NONE --clean --headless -l ${./mdgen.lua} "$@"
+            LUA_PATH="${./.}/?.lua;${pkgs.luajitPackages.argparse}/share/lua/5.1/?.lua;" nvim -u NONE --clean --headless -l ${./mdgen.lua} "$@"
           '';
         };
         devShells.default = pkgs.mkShell {
