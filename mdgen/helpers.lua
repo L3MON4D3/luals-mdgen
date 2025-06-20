@@ -36,7 +36,7 @@ end
 ---position.
 
 ---@class MDGen.Opts.FieldListToMdlist
----@field opts_expand table<string, MDGen.ExpandSpec>
+---@field type_expand table<string, MDGen.ExpandSpec>
 
 ---Generate a markdown-list from a list of fields of a class.
 ---@param fields MDGen.MemberInfo[]
@@ -56,14 +56,14 @@ local function fieldlist_to_mdlist(fields, opts)
 			vim.list_extend(param_tokens, Parser.parse_markdown(field.description))
 		end
 
-		if field.type and opts.opts_expand[field.type] then
+		if field.type and opts.type_expand[field.type] then
 			vim.list_extend(param_tokens, {
 				Tokens.fixed_text({"  "}), Tokens.combinable_linebreak(1),
 				"Valid", "keys", "are:" })
 
-			local class_info = Typeinfo.classinfo(opts.opts_expand[field.type].explain_type)
+			local class_info = Typeinfo.classinfo(opts.type_expand[field.type].explain_type)
 			if not class_info then
-				error("explain_type for " .. field.type .. " was " .. opts.opts_expand[field.type].explain_type .. " but no information could be found on that type.")
+				error("explain_type for " .. field.type .. " was " .. opts.type_expand[field.type].explain_type .. " but no information could be found on that type.")
 			end
 			table.insert(param_tokens, fieldlist_to_mdlist(class_info.members, opts))
 		end
@@ -91,14 +91,14 @@ local function paramlist_to_mdlist(items, opts)
 			vim.list_extend(param_tokens, Parser.parse_markdown(param.description))
 		end
 
-		if param.type and opts.opts_expand[param.type] then
+		if param.type and opts.type_expand[param.type] then
 			vim.list_extend(param_tokens, {
 				Tokens.fixed_text({"  "}), Tokens.combinable_linebreak(1),
 				"Valid", "keys", "are:" })
 
-			local class_info = Typeinfo.classinfo(opts.opts_expand[param.type].explain_type)
+			local class_info = Typeinfo.classinfo(opts.type_expand[param.type].explain_type)
 			if not class_info then
-				error("explain_type for " .. param.type .. " was " .. opts.opts_expand[param.type].explain_type .. " but no information could be found on that type.")
+				error("explain_type for " .. param.type .. " was " .. opts.type_expand[param.type].explain_type .. " but no information could be found on that type.")
 			end
 			if opts.pre_list_linebreak then
 				table.insert(param_tokens, Tokens.combinable_linebreak(2))
@@ -147,16 +147,16 @@ end
 function M.fn_doc_tokens(opts)
 	vim.validate("funcname", opts.funcname, {"string"})
 	vim.validate("typename", opts.typename, {"string"})
-	vim.validate("opts_expand", opts.opts_expand, {"table", "nil"})
+	vim.validate("type_expand", opts.type_expand, {"table", "nil"})
 	vim.validate("display_fname", opts.display_fname, {"string", "nil"})
 	vim.validate("pre_list_linebreak", opts.pre_list_linebreak, {"boolean", "nil"})
 
-	local opts_expand = opts.opts_expand or {}
+	local type_expand = opts.type_expand or {}
 	local pre_list_linebreak = vim.F.if_nil(opts.pre_list_linebreak, false)
 	local display_fname = opts.display_fname or opts.typename .. "." .. opts.funcname
 
 	local info = Typeinfo.funcinfo(opts.typename, opts.funcname)
-	local param_list = paramlist_to_mdlist(info.params, {opts_expand = opts_expand, pre_list_linebreak = pre_list_linebreak})
+	local param_list = paramlist_to_mdlist(info.params, {type_expand = type_expand, pre_list_linebreak = pre_list_linebreak})
 	local return_list = returnlist_to_mdlist(info.returns)
 
 	local tokens = {
