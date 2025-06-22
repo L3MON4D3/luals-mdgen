@@ -144,25 +144,36 @@ local function returnlist_to_mdlist(items)
 	end
 end
 
-function M.fn_doc_tokens(opts)
+function M.prototype_string(opts)
+	vim.validate("funcname", opts.funcname, {"string"})
+	vim.validate("typename", opts.typename, {"string"})
+	vim.validate("display_fname", opts.display_fname, {"string", "nil"})
+
+	local display_fname = opts.display_fname or opts.typename .. "." .. opts.funcname
+
+	local func_info = Typeinfo.funcinfo(opts.typename, opts.funcname)
+	return prototype_string(display_fname, func_info)
+end
+
+function M.func_info_tokens(opts)
 	vim.validate("funcname", opts.funcname, {"string"})
 	vim.validate("typename", opts.typename, {"string"})
 	vim.validate("type_expand", opts.type_expand, {"table", "nil"})
-	vim.validate("display_fname", opts.display_fname, {"string", "nil"})
 	vim.validate("pre_list_linebreak", opts.pre_list_linebreak, {"boolean", "nil"})
 
 	local type_expand = opts.type_expand or {}
 	local pre_list_linebreak = vim.F.if_nil(opts.pre_list_linebreak, false)
-	local display_fname = opts.display_fname or opts.typename .. "." .. opts.funcname
 
 	local info = Typeinfo.funcinfo(opts.typename, opts.funcname)
 	local param_list = paramlist_to_mdlist(info.params, {type_expand = type_expand, pre_list_linebreak = pre_list_linebreak})
 	local return_list = returnlist_to_mdlist(info.returns)
 
-	local tokens = {
-		-- only insert `:` if there is something after the prototype.
-		prototype_string(display_fname, info) .. Util.ternary(param_list ~= nil or info.description ~= nil or return_list ~= nil, ":", ""),
-	}
+	if param_list == nil and info.description == nil and return_list == nil then
+		-- if there is no additional info, return an empty list.
+		return {}
+	end
+
+	local tokens = {}
 	if info.description then
 		vim.list_extend(tokens, Parser.parse_markdown(info.description))
 	end
@@ -188,6 +199,17 @@ function M.fn_doc_tokens(opts)
 		})
 	end
 
+	return tokens
+end
+
+function M.fn_doc_tokens(opts)
+	local prot_string = M.prototype_string(opts)
+	local fi_tokens = M.func_info_tokens(opts)
+	if #fi_tokens > 0 then
+		prot_string = prot_string .. ":"
+	end
+	local tokens = {prot_string}
+	vim.list_extend(tokens, fi_tokens)
 	return tokens
 end
 
