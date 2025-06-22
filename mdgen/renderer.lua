@@ -175,8 +175,10 @@ function TextRenderer:get_render_env()
 	end
 	for fname, f in pairs(Helpers) do
 		env[fname] = f
-		env[fname:gsub("_tokens$", "")] = function(...)
-			self:append_tokens(f(...))
+		if fname:match("_tokens$") then
+			env[fname:gsub("_tokens$", "")] = function(...)
+				self:append_tokens(f(...))
+			end
 		end
 	end
 	for fname, f in pairs(Typeinfo) do
