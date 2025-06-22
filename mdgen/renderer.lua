@@ -188,6 +188,7 @@ function TextRenderer:get_render_env()
 	for fname, f in pairs(Tokens) do
 		env.tokens[fname] = f
 	end
+	env.mode = Mode
 	return env
 end
 
