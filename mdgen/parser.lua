@@ -1,4 +1,5 @@
 local Tokens = require("mdgen.tokens")
+local Str = require("mdgen.str")
 
 local M = {}
 
@@ -172,6 +173,8 @@ function parsers.fenced_code_block(source, node)
 	for i = 2, #split_text do
 		split_text[i] = split_text[i]:sub(#block_indent+1)
 	end
+
+	Str.dedent(split_text, 2, #split_text-1)
 
 	return { Tokens.prev_token_cb(pre_codeblock_cb), Tokens.fixed_text(split_text), Tokens.combinable_linebreak(1) }
 end
