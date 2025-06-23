@@ -65,7 +65,7 @@ function M.funcinfo(typename, funcname)
 	local retvals = {}
 	for i, param in ipairs(raw_fdoc.returns) do
 		retvals[i] = {
-			name = Util.ternary(param.name ~= vim.NIL, param.name, nil),
+			name = Util.ternary(param.name ~= vim.NIL and param.name ~= "_", param.name, nil),
 			type = param.typ,
 			description = Util.ternary(param.desc ~= vim.NIL, {content = param.desc, src = raw_fdoc.loc.file} --[[@as MDGen.Description]], nil)
 		} --[[@as MDGen.ReturnInfo]]
