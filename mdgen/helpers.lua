@@ -13,7 +13,16 @@ local function prototype_string(display_fname, finfo)
 
 	if #finfo.params > 0 then
 		for _, param in ipairs(finfo.params) do
-			fn_line = fn_line .. ("%s, "):format(param.name)
+			local p_id = param.name
+			-- Append a `?` to the param-name if it is optional. Effectively
+			-- communicates which parameters are important and which are less
+			-- important.
+			-- if this parameter is optional, it should be possible to write it
+			-- s.t. the last character of the type is a ?.
+			if param.type and param.type:sub(-1,-1) == "?" then
+				p_id = p_id .. "?"
+			end
+			fn_line = fn_line .. ("%s, "):format(p_id)
 		end
 		-- omit trailing ", ".
 		fn_line = fn_line:sub(1,-3)
