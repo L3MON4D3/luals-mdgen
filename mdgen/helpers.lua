@@ -57,6 +57,9 @@ local function fieldlist_to_mdlist(fields, opts)
 	for i, field in ipairs(fields) do
 		local field_id = "`" .. field.name
 		if field.type then
+			if field.type:sub(-1,-1) == "?" then
+				field_id = field_id .. "?"
+			end
 			field_id = field_id .. ": " .. field.type
 		end
 		field_id = field_id .. "`"
@@ -92,6 +95,9 @@ local function paramlist_to_mdlist(items, opts)
 
 		local param_id = "`" .. param.name
 		if param.type then
+			if param.type:sub(-1,-1) == "?" then
+				param_id = param_id .. "?"
+			end
 			param_id = param_id .. ": " .. param.type
 		end
 		param_id = param_id .. "`"
