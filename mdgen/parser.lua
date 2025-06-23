@@ -170,7 +170,7 @@ function parsers.fenced_code_block(source, node)
 		error("Cannot parse " .. block_text .. ".")
 	end
 
-	for i = 2, #split_text do
+	for i = 1, #split_text do
 		split_text[i] = split_text[i]:sub(#block_indent+1)
 	end
 
