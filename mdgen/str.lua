@@ -2,16 +2,18 @@ local M = {}
 
 ---In-place dedents strings in lines.
 ---@param lines string[].
-local function dedent(lines)
+---@param from integer First line to consider
+---@param to integer Last line to consider
+function M.dedent(lines, from, to)
 	if #lines > 0 then
 		local ind_size = math.huge
-		for i, _ in ipairs(lines) do
-			local i1, i2 = lines[i]:find("^%s*[^%s]")
-			if i1 and i2 < ind_size then
+		for i = from,to do
+			local _, i2 = lines[i]:find("^%s*[^%s]")
+			if i2 and i2 < ind_size then
 				ind_size = i2
 			end
 		end
-		for i, _ in ipairs(lines) do
+		for i = from, to do
 			lines[i] = lines[i]:sub(ind_size, -1)
 		end
 	end
@@ -25,7 +27,7 @@ end
 ---  - dedent: removes indent common to all lines.
 ---  - indent_string: an unit indent at beginning of each line after applying `dedent`, default empty string (disabled)
 function M.process_multiline(lines, options)
-	local split_lines = vim.split(lines, "\n")
+	local split_lines = vim.split(lines, "\n", {plain=true, trimempty = false})
 
 	if options.trim_empty then
 		if split_lines[1]:match("^%s*$") then
@@ -37,7 +39,7 @@ function M.process_multiline(lines, options)
 	end
 
 	if options.dedent then
-		dedent(split_lines)
+		M.dedent(split_lines, 1, #split_lines)
 	end
 
 	return table.concat(split_lines, "\n")
