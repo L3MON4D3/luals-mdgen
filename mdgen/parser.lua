@@ -31,6 +31,43 @@ function parsers.paragraph(source, node, opts)
 	parser:parse()
 	node = parser:trees()[1]:root()
 
+	-- First, collect both whitespace between words and words, then put them
+	-- together.
+	local with_whitespace_tokens = {}
+	local function append_text(from, to)
+		-- append non-whitespace characters in-order.
+		local unhandled_text = source:sub(from, to)
+		if unhandled_text:sub(1,1):match("%s") then
+			table.insert(with_whitespace_tokens, " ")
+		end
+		for match in unhandled_text:gmatch("[^%s]+") do
+			table.insert(with_whitespace_tokens, match)
+			table.insert(with_whitespace_tokens, " ")
+		end
+		if unhandled_text:sub(-1,-1):match("[^%s]") then
+			-- if the text ends with a non-whitespace char, remove the last added whitespace.
+			with_whitespace_tokens[#with_whitespace_tokens] = nil
+		end
+	end
+
+	local current_from = posbyte(node:start())+1
+	for _, named_child in ipairs(node:named_children()) do
+		local named_start = posbyte(named_child:start())
+		local named_end = posbyte(named_child:end_())
+
+		append_text(current_from, named_start)
+
+		local node_parser = inline_parsers[named_child:type()]
+		if not node_parser then
+			error("No parser for node-type " .. node:type() .. " in " .. vim.treesitter.get_node_text(node,source) .. ".")
+		end
+		local node_tokens = node_parser(source, named_child, opts)
+		vim.list_extend(with_whitespace_tokens, node_tokens)
+
+		current_from = named_end+1
+	end
+	append_text(current_from, posbyte(node:end_()))
+
 	local ast = {
 		Tokens.prev_token_cb(function(prev_token)
 			if prev_token and Tokens.is_data(prev_token) and prev_token.data.paragraph_end then
@@ -41,30 +78,30 @@ function parsers.paragraph(source, node, opts)
 		end)
 	}
 
-	local function append_text(from, to)
-		-- append non-whitespace characters in-order.
-		local unhandled_text = source:sub(from, to)
-		for match in unhandled_text:gmatch("[^%s]+") do
-			table.insert(ast, match)
+	-- contains a string without any whitespace, ie. without opportunities for
+	-- breaking it up over a newline.
+	local word = ""
+	for _, token in ipairs(with_whitespace_tokens) do
+		local tt = type(token)
+		-- " " or non-string token finish the word, append non-string-token as-is.
+		-- Otherwise the token is a simple string, and can be appended to the
+		-- current word.
+		if token == " " or tt ~= "string" then
+			if word ~= "" then
+				table.insert(ast, word)
+				word = ""
+			end
+			if tt ~= "string" then
+				table.insert(ast, token)
+			end
+		else
+			word = word .. token
 		end
 	end
-
-	local current_from = posbyte(node:start())+1
-	for _, named_child in ipairs(node:named_children()) do
-		local named_start = posbyte(named_child:start())
-
-		append_text(current_from, named_start)
-
-		local node_parser = inline_parsers[named_child:type()]
-		if not node_parser then
-			error("No parser for node-type " .. node:type() .. " in " .. vim.treesitter.get_node_text(node,source) .. ".")
-		end
-		local node_tokens, tokens_end = node_parser(source, named_child, opts)
-		vim.list_extend(ast, node_tokens)
-
-		current_from = tokens_end+1
+	if word ~= "" then
+		table.insert(ast, word)
 	end
-	append_text(current_from, posbyte(node:end_()))
+
 	table.insert(ast, Tokens.data({paragraph_end = true}))
 
 	return ast
@@ -77,11 +114,7 @@ end
 ---@param node TSNode Node corresponding to an inline_link.
 ---@param opts MDGen.Opts.ParseMarkdown
 ---@return MDGen.Token[] Tokens
----@return integer byte_pos_end End-position of the extracted region. This is
----required because we may grab more than just the node, and the caller has to
----know about this, and not re-parse these characters.
 function inline_parsers.inline_link(source, node, opts)
-	local node_text = vim.treesitter.get_node_text(node, source)
 	-- these should exist!
 	local link_name = vim.treesitter.get_node_text((node:named_child(0) --[[@as TSNode]]), source)
 	local link_dest = vim.treesitter.get_node_text((node:named_child(1) --[[@as TSNode]]), source)
@@ -121,34 +154,16 @@ function inline_parsers.inline_link(source, node, opts)
 	if file_newrel ~= nil then
 		link_dest = file_newrel .. "#" .. link_target_section
 	end
-	node_text = ("[%s](%s)"):format(link_name, link_dest)
 
-	local tokens_end = posbyte(node:end_())
-	local non_whitespace_from, non_whitespace_to, non_whitespace_text = source:find("([^%s]+)", tokens_end+1)
-
-	if non_whitespace_from == tokens_end+1 then
-		node_text = node_text .. non_whitespace_text
-		-- if non_whitespace_from was non-nil, non_whitespace_to is too.
-		tokens_end = non_whitespace_to --[[@as integer]]
-	end
-	return {node_text}, tokens_end
+	return {("[%s](%s)"):format(link_name, link_dest)}
 end
 function inline_parsers.code_span(source, node)
-	local node_text = vim.treesitter.get_node_text(node, source)
-	local tokens_end = posbyte(node:end_())
-
-	local non_whitespace_from, non_whitespace_to, non_whitespace_text = source:find("([^%s]+)", tokens_end+1)
-
-	if non_whitespace_from == tokens_end+1 then
-		node_text = node_text .. non_whitespace_text
-		tokens_end = non_whitespace_to
-	end
-	return {node_text}, tokens_end
+	return {vim.treesitter.get_node_text(node, source)}
 end
 
-function inline_parsers.hard_line_break(_, node)
+function inline_parsers.hard_line_break(_, _)
 	-- preserve hard line break in text.
-	return { Tokens.fixed_text({"  "}), Tokens.combinable_linebreak(1) }, posbyte(node:end_())
+	return { Tokens.fixed_text({"  "}), Tokens.combinable_linebreak(1) }
 end
 
 local function pre_codeblock_cb(prev_token)
