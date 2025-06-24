@@ -208,6 +208,7 @@ function M.func_info_tokens(opts)
 			})
 		end
 		vim.list_extend(tokens, {
+			Tokens.combinable_linebreak(2),
 			"This", "function", "returns:",
 			Util.ternary(pre_list_linebreak, Tokens.combinable_linebreak(2), nil),
 			return_list
