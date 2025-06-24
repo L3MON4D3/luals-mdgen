@@ -31,7 +31,15 @@ function parsers.paragraph(source, node, opts)
 	parser:parse()
 	node = parser:trees()[1]:root()
 
-	local ast = {}
+	local ast = {
+		Tokens.prev_token_cb(function(prev_token)
+			if prev_token and Tokens.is_data(prev_token) and prev_token.data.paragraph_end then
+				return { Tokens.combinable_linebreak(2) }
+			else
+				return {}
+			end
+		end)
+	}
 
 	local function append_text(from, to)
 		-- append non-whitespace characters in-order.
@@ -57,6 +65,7 @@ function parsers.paragraph(source, node, opts)
 		current_from = tokens_end+1
 	end
 	append_text(current_from, posbyte(node:end_()))
+	table.insert(ast, Tokens.data({paragraph_end = true}))
 
 	return ast
 end
