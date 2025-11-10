@@ -59,7 +59,7 @@ function parsers.paragraph(source, node, opts)
 
 		local node_parser = inline_parsers[named_child:type()]
 		if not node_parser then
-			error("No parser for node-type " .. node:type() .. " in " .. vim.treesitter.get_node_text(node,source) .. ".")
+			error("No parser for node-type " .. named_child:type() .. " in " .. vim.treesitter.get_node_text(node,source) .. ".")
 		end
 		local node_tokens = node_parser(source, named_child, opts)
 		vim.list_extend(with_whitespace_tokens, node_tokens)
