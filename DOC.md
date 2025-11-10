@@ -26,13 +26,20 @@ This project models a cat. The cat can meow and eat, without limit.
       10. apple
       11. apple
       12. apple
+
+      Demo-image:
+
+      [eating_cat](https://balmesvet.com/wp-content/uploads/2025/05/4.jpg)
+
+      invalid Demo-image:  
+      Demo-link: <https://wikipedia.com>
   * ```lua
     print("lel")
     ```
   * `Cat.enemies(opts): boolean, string[]`: Return a list of enemies of all cats.
     * `opts: CatEnemiesOpts` Lots of options for cats' enemies.  
       Valid keys are:
-      * `filter: fun(string) -> boolean?` Optionally filter enemies by their name.
+      * `filter?: fun(string) -> boolean?` Optionally filter enemies by their name.
       * `max_legs: number` Only return enemies with this number of legs. Despite their legs, they may be less dangerous,
         so take care!
       * `min: number` Only return enemies with this number of legs.

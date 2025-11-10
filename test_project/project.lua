@@ -26,6 +26,13 @@ function Cat:meow(target, volume) end
 ---1. apple
 ---1. apple
 ---1. apple
+---
+---Demo-image:
+---
+---<media:eating_cat>
+---
+---invalid Demo-image: <media:eating_cat2>  
+---Demo-link: <https://wikipedia.com>
 function Cat:eat(amount, foodname)
 	return
 end

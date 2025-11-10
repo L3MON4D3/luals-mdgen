@@ -46,6 +46,7 @@ end
 
 ---@class MDGen.Opts.FieldListToMdlist
 ---@field type_expand table<string, MDGen.ExpandSpec>
+---@field media_mapping MDGen.MediaMapping
 ---@field pre_list_linebreak boolean Whether to add an empty line before lists.
 
 ---Generate a markdown-list from a list of fields of a class.
@@ -66,7 +67,9 @@ local function fieldlist_to_mdlist(fields, opts)
 		field_id = field_id .. "`"
 		local param_tokens = {field_id}
 		if field.description then
-			vim.list_extend(param_tokens, Parser.parse_markdown(field.description))
+			vim.list_extend(param_tokens, Parser.parse_markdown(field.description, {
+				media_mapping = opts.media_mapping
+			}))
 		end
 
 		if field.type and opts.type_expand[field.type] then
@@ -111,7 +114,9 @@ local function paramlist_to_mdlist(items, opts)
 		param_id = param_id .. "`"
 		local param_tokens = {param_id}
 		if param.description then
-			vim.list_extend(param_tokens, Parser.parse_markdown(param.description))
+			vim.list_extend(param_tokens, Parser.parse_markdown(param.description, {
+				media_mapping = opts.media_mapping
+			}))
 		end
 
 		if param.type and opts.type_expand[param.type] then
@@ -182,13 +187,19 @@ function M.func_info_tokens(opts)
 	vim.validate("funcname", opts.funcname, {"string"})
 	vim.validate("typename", opts.typename, {"string"})
 	vim.validate("type_expand", opts.type_expand, {"table", "nil"})
+	vim.validate("media_mapping", opts.media_mapping, {"table", "nil"})
 	vim.validate("pre_list_linebreak", opts.pre_list_linebreak, {"boolean", "nil"})
 
 	local type_expand = opts.type_expand or {}
 	local pre_list_linebreak = vim.F.if_nil(opts.pre_list_linebreak, false)
+	local media_mapping = opts.media_mapping or {}
 
 	local info = Typeinfo.funcinfo(opts.typename, opts.funcname)
-	local param_list = paramlist_to_mdlist(info.params, {type_expand = type_expand, pre_list_linebreak = pre_list_linebreak})
+	local param_list = paramlist_to_mdlist(info.params, {
+		type_expand = type_expand,
+		pre_list_linebreak = pre_list_linebreak,
+		media_mapping = media_mapping
+	})
 	local return_list = returnlist_to_mdlist(info.returns)
 
 	if param_list == nil and info.description == nil and return_list == nil then
@@ -198,7 +209,9 @@ function M.func_info_tokens(opts)
 
 	local tokens = {}
 	if info.description then
-		vim.list_extend(tokens, Parser.parse_markdown(info.description))
+		vim.list_extend(tokens, Parser.parse_markdown(info.description, {
+			media_mapping = media_mapping
+		}))
 	end
 	if param_list then
 		if opts.pre_list_linebreak then

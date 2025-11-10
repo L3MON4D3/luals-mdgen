@@ -4,9 +4,13 @@ This project models a cat. The cat can meow and eat, without limit.
 
 * My doc:
   ````lua render_region
+  local medialinks = {
+    eating_cat = "https://balmesvet.com/wp-content/uploads/2025/05/4.jpg"
+  }
+
   list({list_type = "bulleted", items = {
       fn_doc_tokens({typename = "Cat", funcname = "meow"}),
-      fn_doc_tokens({typename = "Cat", funcname = "eat"}),
+      fn_doc_tokens({typename = "Cat", funcname = "eat", media_mapping = medialinks}),
       markdown_tokens([[
           ```lua
           print("lel")

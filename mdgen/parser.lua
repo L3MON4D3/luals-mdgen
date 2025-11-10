@@ -112,7 +112,7 @@ end
 
 ---@param source string
 ---@param node TSNode Node corresponding to an inline_link.
----@param opts MDGen.Opts.ParseMarkdown
+---@param opts MDGen.Opts.ParseMarkdownInternal
 ---@return MDGen.Token[] Tokens
 function inline_parsers.inline_link(source, node, opts)
 	-- these should exist!
@@ -159,6 +159,30 @@ function inline_parsers.inline_link(source, node, opts)
 end
 function inline_parsers.code_span(source, node)
 	return {vim.treesitter.get_node_text(node, source)}
+end
+
+---@param source string
+---@param node TSNode Node corresponding to an inline_link.
+---@param opts MDGen.Opts.ParseMarkdownInternal
+---@return MDGen.Token[] Tokens
+function inline_parsers.uri_autolink(source, node, opts)
+	local link_text = vim.treesitter.get_node_text(node, source)
+	local medialink_id = link_text:match("^<media:([^>]+)>$")
+	if medialink_id then
+		local target = opts.media_mapping[medialink_id]
+		if target then
+			return {
+				Tokens.combinable_linebreak(2),
+				("[%s](%s)"):format(medialink_id, target),
+				Tokens.combinable_linebreak(2)}
+		else
+			-- hide media-links without an entry in the media-mapping.
+			return {}
+		end
+	end
+
+	-- not a media-link, just return as-is.
+	return {link_text}
 end
 
 function inline_parsers.hard_line_break(_, _)
@@ -221,7 +245,7 @@ local marker_to_list_type = {
 ---Parse markdown-list.
 ---@param source string Source-text.
 ---@param node TSNode
----@param opts MDGen.Opts.ParseMarkdown
+---@param opts MDGen.Opts.ParseMarkdownInternal
 ---@return [MDGen.ListToken]
 function parsers.list(source, node, opts)
 	local items = {}
@@ -241,7 +265,7 @@ end
 ---Parse top-level node. This can be a document or a list-item.
 ---@param source string Source-text.
 ---@param tl_node TSNode
----@param opts MDGen.Opts.ParseMarkdown
+---@param opts MDGen.Opts.ParseMarkdownInternal
 ---@return MDGen.Token[]
 function parsers.top_level(source, tl_node, opts)
 	local tokens = {}
@@ -255,21 +279,30 @@ function parsers.top_level(source, tl_node, opts)
 	return tokens
 end
 
+---@alias MDGen.MediaMapping {[string]: string}
+
 ---@class MDGen.Opts.ParseMarkdown
+---@field media_mapping MDGen.MediaMapping?
+
+---Opts.ParseMarkdown, narrowed down a bit (media_mapping not optional).
+---@class MDGen.Opts.ParseMarkdownInternal
 ---@field srcfile_abs string? Absolute path to source-file.
+---@field media_mapping MDGen.MediaMapping
 
 ---Parse a \n-concatenated block of markdown lines.
 ---@param lines string|MDGen.Description \n-concatenated lines or `MDGen.Description` object.
 ---@param opts MDGen.Opts.ParseMarkdown? Additional, optional arguments
 ---@return MDGen.Token[] tokens A somewhat reduced syntax tree.
 function M.parse_markdown(lines, opts)
-	opts = opts or {}
+	local internal_opts = {}
+	internal_opts.media_mapping = opts and opts.media_mapping or {}
+
 	if type(lines) ~= "string" and lines.src and lines.content then
-		lines = lines --[[@as MDGen.Description]]
-		opts.srcfile_abs = lines.src
+		---@cast lines MDGen.Description
+		internal_opts.srcfile_abs = lines.src
 		lines = lines.content
+		---@cast lines string
 	end
-	lines = lines --[[@as string]]
 
 	local parser = vim.treesitter.get_string_parser(lines, "markdown")
 	parser:parse()
@@ -282,7 +315,7 @@ function M.parse_markdown(lines, opts)
 		error(("Error while parsing markdown %s: does not match `(document (section <actual content>))`."):format(lines))
 	end
 
-	local res = parsers.top_level(lines, section, opts)
+	local res = parsers.top_level(lines, section, internal_opts)
 	parser:destroy()
 	return res
 end
