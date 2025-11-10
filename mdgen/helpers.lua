@@ -46,10 +46,11 @@ end
 
 ---@class MDGen.Opts.FieldListToMdlist
 ---@field type_expand table<string, MDGen.ExpandSpec>
+---@field pre_list_linebreak boolean Whether to add an empty line before lists.
 
 ---Generate a markdown-list from a list of fields of a class.
 ---@param fields MDGen.MemberInfo[]
----@param opts MDGen.Opts.FieldListToMdlist Additional, optional arguments
+---@param opts MDGen.Opts.FieldListToMdlist Additional, named arguments.
 ---@return MDGen.ListToken
 local function fieldlist_to_mdlist(fields, opts)
 	local list_items = {}
@@ -77,6 +78,9 @@ local function fieldlist_to_mdlist(fields, opts)
 			if not class_info then
 				error("explain_type for " .. field.type .. " was " .. opts.type_expand[field.type].explain_type .. " but no information could be found on that type.")
 			end
+			if opts.pre_list_linebreak then
+				table.insert(param_tokens, Tokens.combinable_linebreak(2))
+			end
 			table.insert(param_tokens, fieldlist_to_mdlist(class_info.members, opts))
 		end
 
@@ -85,6 +89,10 @@ local function fieldlist_to_mdlist(fields, opts)
 
 	return Tokens.list(list_items, "bulleted")
 end
+
+--- Generate a markdown-list from function-parameters.
+---@param items MDGen.ParamInfo[]
+---@param opts MDGen.Opts.FieldListToMdlist
 local function paramlist_to_mdlist(items, opts)
 	local paramlist_items = {}
 	local additional_info = false
